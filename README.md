@@ -15,7 +15,7 @@ git clone https://github.com/Sleepless-Artery/online-learning-platform-infra
 - [online-learning-platform-config-server](https://github.com/Sleepless-Artery/online-learning-platform-config-server)
 - [online-learning-platform-configs](https://github.com/Sleepless-Artery/online-learning-platform-configs)
 
-Перейдите в каталог, в который склонировали настоящий репозиторий, и создайте файл .env, скопируйте в него код из .env.example и замените значения переменных окружения на нужные.
+Перейдите в каталог, в который склонировали настоящий репозиторий, и создайте файл .env, скопируйте в него код из .env.example и замените значения переменных окружения на нужные
 
 В Docker CLI перейдите в каталог, в который склонировали настоящий репозиторий, и выполните команду
 ```bash
