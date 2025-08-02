@@ -14,6 +14,7 @@ git clone https://github.com/Sleepless-Artery/online-learning-platform-infra
 - [online-learning-platform-gateway-service](https://github.com/Sleepless-Artery/online-learning-platform-gateway-service)
 - [online-learning-platform-config-server](https://github.com/Sleepless-Artery/online-learning-platform-config-server)
 - [online-learning-platform-configs](https://github.com/Sleepless-Artery/online-learning-platform-configs)
+- [online-learning-platform-frontend](https://github.com/Sleepless-Artery/online-learning-platform-frontend)
 
 Перейдите в каталог, в который склонировали настоящий репозиторий, и создайте файл .env, скопируйте в него код из .env.example и замените значения переменных окружения на нужные
 
