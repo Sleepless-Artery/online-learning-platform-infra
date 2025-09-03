@@ -241,7 +241,7 @@ services:
        - GIT_PASSWORD=${GIT_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8888/actuator/health"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
       start_period: 90s
     restart: unless-stopped
@@ -258,9 +258,9 @@ services:
     - JWT_SECRET=${JWT_SECRET}
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8080/internal/actuator/health"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
-      start_period: 40s
+      start_period: 60s
     depends_on:
       config-server:
         condition: service_healthy
@@ -294,9 +294,9 @@ services:
       - ../backend/online-learning-platform-auth-service/src/main/resources/db/migration:/app/resources/db/migration
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8081/internal/actuator/health"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
-      start_period: 40s
+      start_period: 60s
     depends_on:
       config-server:
         condition: service_healthy
@@ -333,9 +333,9 @@ services:
       - ../backend/online-learning-platform-user-service/src/main/resources/db/migration:/app/resources/db/migration
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8082/internal/actuator/health"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
-      start_period: 40s
+      start_period: 60s
     depends_on:
       config-server:
         condition: service_healthy
@@ -370,9 +370,9 @@ services:
       - ../backend/online-learning-platform-course-service/src/main/resources/db/migration:/app/resources/db/migration
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8083/internal/actuator/health"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
-      start_period: 40s
+      start_period: 60s
     depends_on:
       config-server:
         condition: service_healthy
@@ -407,9 +407,9 @@ services:
       - ../backend/online-learning-platform-lesson-service/src/main/resources/db/migration:/app/resources/db/migration
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8084/internal/actuator/health"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
-      start_period: 40s
+      start_period: 60s
     depends_on:
       config-server:
         condition: service_healthy
@@ -443,9 +443,9 @@ services:
       - ../backend/online-learning-platform-enrollment-service/src/main/resources/db/migration:/app/resources/db/migration
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8085/internal/actuator/health"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
-      start_period: 40s
+      start_period: 60s
     depends_on:
       config-server:
         condition: service_healthy
@@ -468,7 +468,7 @@ services:
     build:
       context: ../backend/online-learning-platform-notification-service
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_PROFILES_ACTIVE=prod
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_PASSWORD=${MAIL_PASSWORD}
@@ -476,9 +476,9 @@ services:
       - KAFKA_AUTO_OFFSET_RESET=earliest
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8086/internal/actuator/health"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
-      start_period: 40s
+      start_period: 60s
     depends_on:
       config-server:
         condition: service_healthy
