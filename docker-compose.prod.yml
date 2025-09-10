@@ -1,0 +1,1037 @@
+services:
+  kafka1:
+    image: apache/kafka:latest
+    container_name: kafka1
+    hostname: kafka1
+    ports:
+      - "19092:19092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:19092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:9092,EXTERNAL://localhost:19092,CONTROLLER://kafka1:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka1:9093,2@kafka2:9093,3@kafka3:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka1:9092 --list || exit 1"]
+      interval: 15s
+      timeout: 20s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  kafka2:
+    image: apache/kafka:latest
+    container_name: kafka2
+    hostname: kafka2
+    ports:
+      - "19093:19093"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:19093,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:9092,EXTERNAL://localhost:19093,CONTROLLER://kafka2:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka1:9093,2@kafka2:9093,3@kafka3:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka2:9092 --list || exit 1"]
+      interval: 15s
+      timeout: 20s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  kafka3:
+    image: apache/kafka:latest
+    container_name: kafka3
+    hostname: kafka3
+    ports:
+      - "19094:19094"
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:19094,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:9092,EXTERNAL://localhost:19094,CONTROLLER://kafka3:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka1:9093,2@kafka2:9093,3@kafka3:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka3:9092 --list || exit 1"]
+      interval: 15s
+      timeout: 20s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+
+  consul-server1:
+    image: hashicorp/consul:latest
+    container_name: consul-server1
+    command: "agent -server -bootstrap-expect=3 -ui -client=0.0.0.0 -node=server1 -bind=0.0.0.0 -retry-join=consul-server2 -retry-join=consul-server3"
+    environment:
+      CONSUL_HTTP_ADDR: "http://0.0.0.0:8500"
+      CONSUL_BIND_INTERFACE: "eth0"
+    networks:
+      - online_learning_platform_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8500/v1/status/leader"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  consul-server2:
+    image: hashicorp/consul:latest
+    container_name: consul-server2
+    command: "agent -server -bootstrap-expect=3 -ui -client=0.0.0.0 -node=server2 -bind=0.0.0.0 -retry-join=consul-server1 -retry-join=consul-server3"
+    environment:
+      CONSUL_HTTP_ADDR: "http://0.0.0.0:8500"
+      CONSUL_BIND_INTERFACE: "eth0"
+    networks:
+      - online_learning_platform_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8500/v1/status/leader"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  consul-server3:
+    image: hashicorp/consul:latest
+    container_name: consul-server3
+    command: "agent -server -bootstrap-expect=3 -ui -client=0.0.0.0 -node=server3 -bind=0.0.0.0 -retry-join=consul-server1 -retry-join=consul-server2"
+    environment:
+      CONSUL_HTTP_ADDR: "http://0.0.0.0:8500"
+      CONSUL_BIND_INTERFACE: "eth0"
+    networks:
+      - online_learning_platform_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8500/v1/status/leader"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  consul-client:
+    image: hashicorp/consul:latest
+    container_name: consul-client
+    command: "agent -client=0.0.0.0 -retry-join=consul-server1 -retry-join=consul-server2 -retry-join=consul-server3"
+    depends_on:
+      - consul-server1
+      - consul-server2
+      - consul-server3
+    networks:
+      - online_learning_platform_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8500/v1/status/peers"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-auth:
+    image: postgres:15-alpine
+    container_name: postgres-auth
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: ${AUTH_DB_USERNAME}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USERNAME} -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  postgres-users:
+    image: postgres:15-alpine
+    container_name: postgres-users
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: ${USER_DB_USERNAME}
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD}
+    volumes:
+      - postgres_users_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USER_DB_USERNAME} -d user_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  postgres-courses:
+    image: postgres:15-alpine
+    container_name: postgres-courses
+    environment:
+      POSTGRES_DB: course_db
+      POSTGRES_USER: ${COURSE_DB_USERNAME}
+      POSTGRES_PASSWORD: ${COURSE_DB_PASSWORD}
+    volumes:
+      - postgres_courses_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${COURSE_DB_USERNAME} -d course_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  postgres-lessons:
+    image: postgres:15-alpine
+    container_name: postgres-lessons
+    environment:
+      POSTGRES_DB: lesson_db
+      POSTGRES_USER: ${LESSON_DB_USERNAME}
+      POSTGRES_PASSWORD: ${LESSON_DB_PASSWORD}
+    volumes:
+      - postgres_lessons_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LESSON_DB_USERNAME} -d lesson_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+  
+  postgres-enrollments:
+    image: postgres:15-alpine
+    container_name: postgres-enrollments
+    environment:
+      POSTGRES_DB: enrollment_db
+      POSTGRES_USER: ${ENROLLMENT_DB_USERNAME}
+      POSTGRES_PASSWORD: ${ENROLLMENT_DB_PASSWORD}
+    volumes:
+      - postgres_enrollments_data:/var/lib/postgresql/data
+    ports:
+      - "5437:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ENROLLMENT_DB_USERNAME} -d enrollment_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+
+  redis-auth-master-1:
+    image: redis:7-alpine
+    container_name: redis-auth-master-1
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes --protected-mode no
+    environment:
+      - REDIS_PASSWORD=${AUTH_REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-auth-master-2:
+    image: redis:7-alpine
+    container_name: redis-auth-master-2
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-auth-master-3:
+    image: redis:7-alpine
+    container_name: redis-auth-master-3
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-auth-replica-1:
+    image: redis:7-alpine
+    container_name: redis-auth-replica-1
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-auth-replica-2:
+    image: redis:7-alpine
+    container_name: redis-auth-replica-2
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+    
+  redis-auth-replica-3:
+    image: redis:7-alpine
+    container_name: redis-auth-replica-3
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-auth-init:
+    image: redis:7-alpine
+    container_name: redis-auth-init
+    depends_on:
+      - redis-auth-master-1
+      - redis-auth-master-2
+      - redis-auth-master-3
+      - redis-auth-replica-1
+      - redis-auth-replica-2
+      - redis-auth-replica-3
+    command: >
+      sh -c "
+      sleep 20
+      
+      echo 'yes' | redis-cli --cluster create redis-auth-master-1:6379 redis-auth-master-2:6379 redis-auth-master-3:6379 redis-auth-replica-1:6379 redis-auth-replica-2:6379 redis-auth-replica-3:6379 --cluster-replicas 1 --cluster-yes
+      "
+    networks:
+      - online_learning_platform_net
+    restart: on-failure
+
+
+  redis-users-master-1:
+    image: redis:7-alpine
+    container_name: redis-users-master-1
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6380 --appendonly yes --protected-mode no
+    ports:
+      - "6380:6380"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6380", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-users-master-2:
+    image: redis:7-alpine
+    container_name: redis-users-master-2
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6380 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6380", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-users-master-3:
+    image: redis:7-alpine
+    container_name: redis-users-master-3
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6380 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6380", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-users-replica-1:
+    image: redis:7-alpine
+    container_name: redis-users-replica-1
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6380 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6380", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-users-replica-2:
+    image: redis:7-alpine
+    container_name: redis-users-replica-2
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6380 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6380", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+    
+  redis-users-replica-3:
+    image: redis:7-alpine
+    container_name: redis-users-replica-3
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6380 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6380", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-users-init:
+    image: redis:7-alpine
+    container_name: redis-users-init
+    depends_on:
+      - redis-users-master-1
+      - redis-users-master-2
+      - redis-users-master-3
+      - redis-users-replica-1
+      - redis-users-replica-2
+      - redis-users-replica-3
+    command: >
+      sh -c "
+      sleep 20
+      
+      echo 'yes' | redis-cli --cluster create redis-users-master-1:6380 redis-users-master-2:6380 redis-users-master-3:6380 redis-users-replica-1:6380 redis-users-replica-2:6380 redis-users-replica-3:6380 --cluster-replicas 1 --cluster-yes
+      "
+    networks:
+      - online_learning_platform_net
+    restart: on-failure
+
+
+  redis-courses-master-1:
+    image: redis:7-alpine
+    container_name: redis-courses-master-1
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6381 --appendonly yes --protected-mode no
+    ports:
+      - "6381:6381"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6381", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-courses-master-2:
+    image: redis:7-alpine
+    container_name: redis-courses-master-2
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6381 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6381", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-courses-master-3:
+    image: redis:7-alpine
+    container_name: redis-courses-master-3
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6381 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6381", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-courses-replica-1:
+    image: redis:7-alpine
+    container_name: redis-courses-replica-1
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6381 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6381", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-courses-replica-2:
+    image: redis:7-alpine
+    container_name: redis-courses-replica-2
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6381 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6381", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+    
+  redis-courses-replica-3:
+    image: redis:7-alpine
+    container_name: redis-courses-replica-3
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6381 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6381", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-courses-init:
+    image: redis:7-alpine
+    container_name: redis-courses-init
+    depends_on:
+      - redis-courses-master-1
+      - redis-courses-master-2
+      - redis-courses-master-3
+      - redis-courses-replica-1
+      - redis-courses-replica-2
+      - redis-courses-replica-3
+    command: >
+      sh -c "
+      sleep 20
+      
+      echo 'yes' | redis-cli --cluster create redis-courses-master-1:6381 redis-courses-master-2:6381 redis-courses-master-3:6381 redis-courses-replica-1:6381 redis-courses-replica-2:6381 redis-courses-replica-3:6381 --cluster-replicas 1 --cluster-yes
+      "
+    networks:
+      - online_learning_platform_net
+    restart: on-failure
+
+
+  redis-lessons-master-1:
+    image: redis:7-alpine
+    container_name: redis-lessons-master-1
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6382 --appendonly yes --protected-mode no
+    ports:
+      - "6382:6382"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6382", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-lessons-master-2:
+    image: redis:7-alpine
+    container_name: redis-lessons-master-2
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6382 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6382", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-lessons-master-3:
+    image: redis:7-alpine
+    container_name: redis-lessons-master-3
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6382 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6382", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-lessons-replica-1:
+    image: redis:7-alpine
+    container_name: redis-lessons-replica-1
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6382 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6382", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-lessons-replica-2:
+    image: redis:7-alpine
+    container_name: redis-lessons-replica-2
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6382 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6382", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+    
+  redis-lessons-replica-3:
+    image: redis:7-alpine
+    container_name: redis-lessons-replica-3
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6382 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6382", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-lessons-init:
+    image: redis:7-alpine
+    container_name: redis-lessons-init
+    depends_on:
+      - redis-lessons-master-1
+      - redis-lessons-master-2
+      - redis-lessons-master-3
+      - redis-lessons-replica-1
+      - redis-lessons-replica-2
+      - redis-lessons-replica-3
+    command: >
+      sh -c "
+      sleep 20
+      
+      echo 'yes' | redis-cli --cluster create redis-lessons-master-1:6382 redis-lessons-master-2:6382 redis-lessons-master-3:6382 redis-lessons-replica-1:6382 redis-lessons-replica-2:6382 redis-lessons-replica-3:6382 --cluster-replicas 1 --cluster-yes
+      "
+    networks:
+      - online_learning_platform_net
+    restart: on-failure
+
+
+  redis-enrollments-master-1:
+    image: redis:7-alpine
+    container_name: redis-enrollments-master-1
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6383 --appendonly yes --protected-mode no
+    ports:
+      - "6383:6383"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6383", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-enrollments-master-2:
+    image: redis:7-alpine
+    container_name: redis-enrollments-master-2
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6383 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6383", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-enrollments-master-3:
+    image: redis:7-alpine
+    container_name: redis-enrollments-master-3
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6383 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6383", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-enrollments-replica-1:
+    image: redis:7-alpine
+    container_name: redis-enrollments-replica-1
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6383 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6383", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-enrollments-replica-2:
+    image: redis:7-alpine
+    container_name: redis-enrollments-replica-2
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6383 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6383", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+    
+  redis-enrollments-replica-3:
+    image: redis:7-alpine
+    container_name: redis-enrollments-replica-3
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --port 6383 --appendonly yes --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6383", "ping"]
+      interval: 5s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  redis-enrollments-init:
+    image: redis:7-alpine
+    container_name: redis-enrollments-init
+    depends_on:
+      - redis-enrollments-master-1
+      - redis-enrollments-master-2
+      - redis-enrollments-master-3
+      - redis-enrollments-replica-1
+      - redis-enrollments-replica-2
+      - redis-enrollments-replica-3
+    command: >
+      sh -c "
+      sleep 20
+      
+      echo 'yes' | redis-cli --cluster create redis-enrollments-master-1:6383 redis-enrollments-master-2:6383 redis-enrollments-master-3:6383 redis-enrollments-replica-1:6383 redis-enrollments-replica-2:6383 redis-enrollments-replica-3:6383 --cluster-replicas 1 --cluster-yes
+      "
+    networks:
+      - online_learning_platform_net
+    restart: on-failure
+
+
+  config-server:
+    build: 
+      context: ../backend/online-learning-platform-config-server
+    environment:
+       - GIT_USERNAME=${GIT_USERNAME}
+       - GIT_PASSWORD=${GIT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8888/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+    networks:
+      - online_learning_platform_net
+
+
+  gateway-service:
+    build:
+      context: ../backend/online-learning-platform-gateway-service
+    environment:
+    - SPRING_PROFILES_ACTIVE=prod
+    - JWT_SECRET=${JWT_SECRET}
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8080/internal/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+    depends_on:
+      config-server:
+        condition: service_healthy
+      consul-client:
+        condition: service_started
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+    networks:
+      - online_learning_platform_net
+    
+
+  auth-service:
+    build:
+      context: ../backend/online-learning-platform-auth-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - AUTH_DB_URL=${AUTH_DB_URL}
+      - AUTH_DB_USERNAME=${AUTH_DB_USERNAME}
+      - AUTH_DB_PASSWORD=${AUTH_DB_PASSWORD}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka1:9092,kafka2:9092,kafka3:9092
+      - SPRING_FLYWAY_ENABLED=true
+      - SPRING_FLYWAY_LOCATIONS=classpath:/db/migration
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_EMAIL_ADDRESS=${ADMIN_EMAIL_ADDRESS}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - AUTH_REDIS_PORT=6379
+      - REDIS_CLUSTER_NODES=redis-auth-master-1:6379,redis-auth-master-2:6379,redis-auth-master-3:6379,redis-auth-replica-1:6379,redis-auth-replica-2:6379,redis-auth-replica-3:6379
+    volumes:
+      - ../backend/online-learning-platform-auth-service/src/main/resources/db/migration:/app/resources/db/migration
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8081/internal/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 120s
+    depends_on:
+      config-server:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      consul-client:
+        condition: service_healthy
+      redis-auth-init:
+         condition: service_completed_successfully
+      postgres-auth:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+    networks:
+      - online_learning_platform_net
+
+  
+  user-service:
+    build:
+      context: ../backend/online-learning-platform-user-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - USER_DB_URL=${USER_DB_URL}
+      - USER_DB_USERNAME=${USER_DB_USERNAME}
+      - USER_DB_PASSWORD=${USER_DB_PASSWORD}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka1:9092,kafka2:9092,kafka3:9092
+      - SPRING_FLYWAY_ENABLED=true
+      - SPRING_FLYWAY_LOCATIONS=classpath:/db/migration
+      - USERS_REDIS_PORT=6380
+      - REDIS_CLUSTER_NODES=redis-users-master-1:6380,redis-users-master-2:6380,redis-users-master-3:6380,redis-users-replica-1:6380,redis-users-replica-2:6380,redis-users-replica-3:6380
+    volumes:
+      - ../backend/online-learning-platform-user-service/src/main/resources/db/migration:/app/resources/db/migration
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8082/internal/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 120s
+    depends_on:
+      config-server:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      consul-client:
+        condition: service_healthy
+      redis-users-init:
+        condition: service_completed_successfully
+      postgres-users:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+    networks:
+      - online_learning_platform_net
+      
+
+  course-service:
+    build:
+      context: ../backend/online-learning-platform-course-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - COURSE_DB_URL=${COURSE_DB_URL}
+      - COURSE_DB_USERNAME=${COURSE_DB_USERNAME}
+      - COURSE_DB_PASSWORD=${COURSE_DB_PASSWORD}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka1:9092,kafka2:9092,kafka3:9092
+      - SPRING_FLYWAY_ENABLED=true
+      - SPRING_FLYWAY_LOCATIONS=classpath:/db/migration
+      - COURSES_REDIS_PORT=6381
+      - REDIS_CLUSTER_NODES=redis-courses-master-1:6381,redis-courses-master-2:6381,redis-courses-master-3:6381,redis-courses-replica-1:6381,redis-courses-replica-2:6381,redis-courses-replica-3:6381
+    volumes:
+      - ../backend/online-learning-platform-course-service/src/main/resources/db/migration:/app/resources/db/migration
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8083/internal/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 120s
+    depends_on:
+      config-server:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      consul-client:
+        condition: service_healthy
+      redis-courses-init:
+        condition: service_completed_successfully
+      postgres-courses:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+    networks:
+      - online_learning_platform_net
+
+  
+  lesson-service:
+    build:
+      context: ../backend/online-learning-platform-lesson-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - LESSON_DB_URL=${LESSON_DB_URL}
+      - LESSON_DB_USERNAME=${LESSON_DB_USERNAME}
+      - LESSON_DB_PASSWORD=${LESSON_DB_PASSWORD}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka1:9092,kafka2:9092,kafka3:9092
+      - SPRING_FLYWAY_ENABLED=true
+      - SPRING_FLYWAY_LOCATIONS=classpath:/db/migration
+      - LESSONS_REDIS_PORT=6382
+      - REDIS_CLUSTER_NODES=redis-lessons-master-1:6382,redis-lessons-master-2:6382,redis-lessons-master-3:6382,redis-lessons-replica-1:6382,redis-lessons-replica-2:6382,redis-lessons-replica-3:6382
+    volumes:
+      - ../backend/online-learning-platform-lesson-service/src/main/resources/db/migration:/app/resources/db/migration
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8084/internal/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 120s
+    depends_on:
+      config-server:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      consul-client:
+        condition: service_healthy
+      redis-lessons-init:
+        condition: service_completed_successfully
+      postgres-lessons:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+    networks:
+      - online_learning_platform_net
+
+
+  enrollment-service:
+    build:
+      context: ../backend/online-learning-platform-enrollment-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - ENROLLMENT_DB_URL=${ENROLLMENT_DB_URL}
+      - ENROLLMENT_DB_USERNAME=${ENROLLMENT_DB_USERNAME}
+      - ENROLLMENT_DB_PASSWORD=${ENROLLMENT_DB_PASSWORD}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka1:9092,kafka2:9092,kafka3:9092
+      - SPRING_FLYWAY_ENABLED=true
+      - SPRING_FLYWAY_LOCATIONS=classpath:/db/migration
+      - ENROLLMENTS_REDIS_PORT=6383
+      - REDIS_CLUSTER_NODES=redis-enrollments-master-1:6383,redis-enrollments-master-2:6383,redis-enrollments-master-3:6383,redis-enrollments-replica-1:6383,redis-enrollments-replica-2:6383,redis-enrollments-replica-3:6383
+    volumes:
+      - ../backend/online-learning-platform-enrollment-service/src/main/resources/db/migration:/app/resources/db/migration
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8085/internal/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 120s
+    depends_on:
+      config-server:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      consul-client:
+        condition: service_healthy
+      redis-enrollments-init:
+        condition: service_completed_successfully
+      postgres-enrollments:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+    networks:
+      - online_learning_platform_net
+
+
+  notification-service:
+    build:
+      context: ../backend/online-learning-platform-notification-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - KAFKA_BOOTSTRAP_SERVERS=kafka1:9092,kafka2:9092,kafka3:9092
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8086/internal/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 120s
+    depends_on:
+      config-server:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      consul-client:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+    networks:
+      - online_learning_platform_net
+    
+
+  frontend:
+    build: 
+      context: ../frontend
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      course-service:
+        condition: service_healthy
+      lesson-service:
+        condition: service_healthy
+      enrollment-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+
+volumes:
+  consul_data_1:
+  consul_data_2:
+  consul_data_3:
+
+  postgres_auth_data:
+  postgres_users_data:
+  postgres_courses_data:
+  postgres_lessons_data:
+  postgres_enrollments_data:
+
+
+
+networks:
+  online_learning_platform_net:
+    driver: bridge
