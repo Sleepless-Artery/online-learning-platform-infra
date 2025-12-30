@@ -11,6 +11,8 @@ git clone https://github.com/Sleepless-Artery/online-learning-platform-infra
 - [online-learning-platform-lesson-service](https://github.com/Sleepless-Artery/online-learning-platform-lesson-service)
 - [online-learning-platform-enrollment-service](https://github.com/Sleepless-Artery/online-learning-platform-enrollment-service)
 - [online-learning-platform-notification-service](https://github.com/Sleepless-Artery/online-learning-platform-notification-service)
+- [online-learning-platform-assignment-service](https://github.com/Sleepless-Artery/online-learning-platform-assignment-service)
+- [online-learning-platform-submission-service](https://github.com/Sleepless-Artery/online-learning-platform-submission-service)
 - [online-learning-platform-gateway-service](https://github.com/Sleepless-Artery/online-learning-platform-gateway-service)
 - [online-learning-platform-config-server](https://github.com/Sleepless-Artery/online-learning-platform-config-server)
 - [online-learning-platform-configs](https://github.com/Sleepless-Artery/online-learning-platform-configs)
