@@ -165,6 +165,49 @@ services:
     networks:
       - online_learning_platform_net
 
+  postgres-assignments:
+    image: postgres:15-alpine
+    container_name: postgres-assignments
+    environment:
+      POSTGRES_DB: assignment_db
+      POSTGRES_USER: ${ASSIGNMENT_DB_USERNAME}
+      POSTGRES_PASSWORD: ${ASSIGNMENT_DB_PASSWORD}
+    volumes:
+      - postgres_assignments_data:/var/lib/postgresql/data
+    ports:
+      - "5438:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ASSIGNMENT_DB_USERNAME} -d assignment_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  postgres-submissions:
+    image: postgres:15-alpine
+    container_name: postgres-submissions
+    environment:
+      POSTGRES_DB: submission_db
+      POSTGRES_USER: ${SUBMISSION_DB_USERNAME}
+      POSTGRES_PASSWORD: ${SUBMISSION_DB_PASSWORD}
+    volumes:
+      - postgres_submissions_data:/var/lib/postgresql/data
+    ports:
+      - "5439:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SUBMISSION_DB_USERNAME} -d submission_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+
   redis-auth:
     image: redis:7-alpine
     container_name: redis-auth
@@ -240,9 +283,62 @@ services:
       - online_learning_platform_net
 
   
+  redis-assignments:
+    image: redis:7-alpine
+    container_name: redis-assignments
+    ports:
+      - "6384:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  
+  redis-submissions:
+    image: redis:7-alpine
+    container_name: redis-submissions
+    ports:
+      - "6385:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${ASSIGNMENT_MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${ASSIGNMENT_MINIO_SECRET_KEY}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+  
   config-server:
     build: 
-      context: ../backend/online-learning-platform-config-server
+      context: ../backend/config-server
     environment:
        - GIT_USERNAME=${GIT_USERNAME}
        - GIT_PASSWORD=${GIT_PASSWORD}
@@ -258,7 +354,7 @@ services:
 
   gateway-service:
     build:
-      context: ../backend/online-learning-platform-gateway-service
+      context: ../backend/gateway-service
     environment:
     - SPRING_PROFILES_ACTIVE=dev
     - JWT_SECRET=${JWT_SECRET}
@@ -279,7 +375,7 @@ services:
 
   auth-service:
     build:
-      context: ../backend/online-learning-platform-auth-service
+      context: ../backend/auth-service
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - AUTH_DB_URL=${AUTH_DB_URL}
@@ -293,7 +389,7 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - AUTH_REDIS_HOST=${AUTH_REDIS_HOST}
     volumes:
-      - ../backend/online-learning-platform-auth-service/src/main/resources/db/migration:/app/resources/db/migration
+      - ../backend/auth-service/src/main/resources/db/migration:/app/resources/db/migration
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8081/internal/actuator/health"]
       interval: 15s
@@ -317,7 +413,7 @@ services:
   
   user-service:
     build:
-      context: ../backend/online-learning-platform-user-service
+      context: ../backend/user-service
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - USER_DB_URL=${USER_DB_URL}
@@ -326,9 +422,9 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - SPRING_FLYWAY_ENABLED=true
       - SPRING_FLYWAY_LOCATIONS=classpath:/db/migration
-      - USERS_REDIS_HOST=${USERS_REDIS_HOST}
+      - USER_REDIS_HOST=${USER_REDIS_HOST}
     volumes:
-      - ../backend/online-learning-platform-user-service/src/main/resources/db/migration:/app/resources/db/migration
+      - ../backend/user-service/src/main/resources/db/migration:/app/resources/db/migration
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8082/internal/actuator/health"]
       interval: 15s
@@ -352,7 +448,7 @@ services:
 
   course-service:
     build:
-      context: ../backend/online-learning-platform-course-service
+      context: ../backend/course-service
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - COURSE_DB_URL=${COURSE_DB_URL}
@@ -361,9 +457,9 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - SPRING_FLYWAY_ENABLED=true
       - SPRING_FLYWAY_LOCATIONS=classpath:/db/migration
-      - COURSES_REDIS_HOST=${COURSES_REDIS_HOST}
+      - COURSE_REDIS_HOST=${COURSE_REDIS_HOST}
     volumes:
-      - ../backend/online-learning-platform-course-service/src/main/resources/db/migration:/app/resources/db/migration
+      - ../backend/course-service/src/main/resources/db/migration:/app/resources/db/migration
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8083/internal/actuator/health"]
       interval: 15s
@@ -387,7 +483,7 @@ services:
   
   lesson-service:
     build:
-      context: ../backend/online-learning-platform-lesson-service
+      context: ../backend/lesson-service
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - LESSON_DB_URL=${LESSON_DB_URL}
@@ -396,9 +492,9 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - SPRING_FLYWAY_ENABLED=true
       - SPRING_FLYWAY_LOCATIONS=classpath:/db/migration
-      - LESSONS_REDIS_HOST=${LESSONS_REDIS_HOST}
+      - LESSON_REDIS_HOST=${LESSON_REDIS_HOST}
     volumes:
-      - ../backend/online-learning-platform-lesson-service/src/main/resources/db/migration:/app/resources/db/migration
+      - ../backend/lesson-service/src/main/resources/db/migration:/app/resources/db/migration
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8084/internal/actuator/health"]
       interval: 15s
@@ -421,7 +517,7 @@ services:
 
   enrollment-service:
     build:
-      context: ../backend/online-learning-platform-enrollment-service
+      context: ../backend/enrollment-service
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - ENROLLMENT_DB_URL=${ENROLLMENT_DB_URL}
@@ -430,9 +526,9 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - SPRING_FLYWAY_ENABLED=true
       - SPRING_FLYWAY_LOCATIONS=classpath:/db/migration
-      - ENROLLMENTS_REDIS_HOST=${ENROLLMENTS_REDIS_HOST}
+      - ENROLLMENT_REDIS_HOST=${ENROLLMENT_REDIS_HOST}
     volumes:
-      - ../backend/online-learning-platform-enrollment-service/src/main/resources/db/migration:/app/resources/db/migration
+      - ../backend/enrollment-service/src/main/resources/db/migration:/app/resources/db/migration
     healthcheck:
       test: ["CMD", "curl", "-s", "http://localhost:8085/internal/actuator/health"]
       interval: 15s
@@ -456,7 +552,7 @@ services:
 
   notification-service:
     build:
-      context: ../backend/online-learning-platform-notification-service
+      context: ../backend/notification-service
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
@@ -474,6 +570,87 @@ services:
         condition: service_healthy
       consul-server:
         condition: service_started
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+
+
+  assignment-service:
+    build:
+      context: ../backend/assignment-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - ASSIGNMENT_DB_URL=${ASSIGNMENT_DB_URL}
+      - ASSIGNMENT_DB_USERNAME=${ASSIGNMENT_DB_USERNAME}
+      - ASSIGNMENT_DB_PASSWORD=${ASSIGNMENT_DB_PASSWORD}
+      - SPRING_FLYWAY_ENABLED=true
+      - SPRING_FLYWAY_LOCATIONS=classpath:/db/migration
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - ASSIGNMENT_REDIS_HOST=${ASSIGNMENT_REDIS_HOST}
+      - ASSIGNMENT_MINIO_URL=${ASSIGNMENT_MINIO_URL}
+      - ASSIGNMENT_MINIO_ACCESS_KEY=${ASSIGNMENT_MINIO_ACCESS_KEY}
+      - ASSIGNMENT_MINIO_SECRET_KEY=${ASSIGNMENT_MINIO_SECRET_KEY}
+      - ASSIGNMENT_MINIO_BUCKET_NAME=${ASSIGNMENT_MINIO_BUCKET_NAME}
+    volumes:
+      - ../backend/assignment-service/src/main/resources/db/migration:/app/resources/db/migration
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8087/internal/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+    depends_on:
+      config-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      consul-server:
+        condition: service_started
+      redis-assignments:
+        condition: service_healthy
+      postgres-assignments:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - online_learning_platform_net
+  
+
+  submission-service:
+    build:
+      context: ../backend/submission-service
+    environment:
+      - SUBMISSION_DB_URL=${SUBMISSION_DB_URL}
+      - SUBMISSION_DB_USERNAME=${SUBMISSION_DB_USERNAME}
+      - SUBMISSION_DB_PASSWORD=${SUBMISSION_DB_PASSWORD}
+      - SPRING_FLYWAY_ENABLED=true
+      - SPRING_FLYWAY_LOCATIONS=classpath:/db/migration
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SUBMISSION_REDIS_HOST=${SUBMISSION_REDIS_HOST}
+      - SUBMISSION_MINIO_URL=${SUBMISSION_MINIO_URL}
+      - SUBMISSION_MINIO_ACCESS_KEY=${SUBMISSION_MINIO_ACCESS_KEY}
+      - SUBMISSION_MINIO_SECRET_KEY=${SUBMISSION_MINIO_SECRET_KEY}
+      - SUBMISSION_MINIO_BUCKET_NAME=${SUBMISSION_MINIO_BUCKET_NAME}
+    volumes:
+      - ../backend/submission-service/src/main/resources/db/migration:/app/resources/db/migration
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8088/internal/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+    depends_on:
+      config-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      consul-server:
+        condition: service_started
+      redis-submissions:
+        condition: service_healthy
+      postgres-submissions:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - online_learning_platform_net
@@ -501,6 +678,10 @@ services:
         condition: service_healthy
       notification-service:
         condition: service_healthy
+      assignment-service:
+        condition: service_healthy
+      submission-service:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - online_learning_platform_net
@@ -508,12 +689,15 @@ services:
 
 volumes:
   consul-data:
+  minio-data:
 
   postgres_auth_data:
   postgres_users_data:
   postgres_courses_data:
   postgres_lessons_data:
   postgres_enrollments_data:
+  postgres_assignments_data:
+  postgres_submissions_data:
 
 
 networks:
